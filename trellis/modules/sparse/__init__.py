@@ -99,4 +99,4 @@ if __name__ == '__main__':
     from .attention import *
     from .conv import *
     from .spatial import *
-    import transformer
+    import transformer  # pants: no-infer-dep
