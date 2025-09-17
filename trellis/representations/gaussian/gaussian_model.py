@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from plyfile import PlyData, PlyElement
+from plyfile import PlyData, PlyElement  # pants: no-infer-dep
 from .general_utils import inverse_sigmoid, strip_symmetric, build_scaling_rotation
 import utils3d
 

@@ -4,7 +4,7 @@ import math
 from . import DEBUG, BACKEND
 
 if BACKEND == 'xformers':
-    import xformers.ops as xops
+    import xformers.ops as xops  # pants: no-infer-dep
 elif BACKEND == 'flash_attn':
     import flash_attn
 elif BACKEND == 'sdpa':
