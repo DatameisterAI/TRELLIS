@@ -119,6 +119,35 @@ class FlowEulerSampler(Sampler):
         ret.samples = sample
         return ret
 
+    @torch.no_grad()
+    def sample_64_masked(
+        self,
+        model: torch.nn.Module,
+        noise_64: torch.Tensor,
+        mask_64: torch.Tensor,
+        ss_encoder: torch.nn.Module,
+        ss_decoder: torch.nn.Module,
+        cond: Optional[Any] = None,
+        steps: int = 50,
+        rescale_t: float = 1.0,
+        verbose: bool = True,
+        **kwargs,
+    ):
+        """
+        mask_64: [B, 1, 64, 64], 1 for keep, 0 for inpaint
+        """
+        sample_64 = noise_64
+        t_seq = np.linspace(1, 0, steps + 1)
+        t_seq = rescale_t * t_seq / (1 + (rescale_t - 1) * t_seq)
+        t_pairs = list((t_seq[i], t_seq[i + 1]) for i in range(steps))
+        for t, t_prev in tqdm(t_pairs, desc="Sampling", disable=not verbose):
+            sample_16 = ss_encoder(sample_64)
+            out_16 = self.sample_once(model, sample_16, t, t_prev, cond, **kwargs)
+            out_64 = ss_decoder(out_16.pred_x_prev)
+            sample_64 = sample_64 * mask_64 + out_64 * (1 - mask_64)
+
+        return sample_64
+
 
 class FlowEulerCfgSampler(ClassifierFreeGuidanceSamplerMixin, FlowEulerSampler):
     """
