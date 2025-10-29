@@ -3,7 +3,7 @@ from ...modules.sparse import SparseTensor
 from easydict import EasyDict as edict
 from .utils_cube import *
 from .flexicubes.flexicubes import FlexiCubes
-
+import trimesh
 
 class MeshExtractResult:
     def __init__(self,
@@ -15,6 +15,7 @@ class MeshExtractResult:
         self.vertices = vertices
         self.faces = faces.long()
         self.vertex_attrs = vertex_attrs
+        self.vertex_normal = self.comput_v_normals(vertices, faces)
         self.face_normal = self.comput_face_normals(vertices, faces)
         self.res = res
         self.success = (vertices.shape[0] != 0 and faces.shape[0] != 0)
@@ -52,7 +53,28 @@ class MeshExtractResult:
         v_normals.scatter_add_(0, i2[..., None].repeat(1, 3), face_normals)
 
         v_normals = torch.nn.functional.normalize(v_normals, dim=1)
-        return v_normals   
+        return v_normals
+
+    def to_trimesh(self, transform_pose=False):
+        vertices = self.vertices.detach().cpu().numpy()
+        faces = self.faces.detach().cpu().numpy()
+
+        if transform_pose:
+            transform_matrix = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+            vertices = vertices @ transform_matrix
+            vertex_normals = self.vertex_normal.detach().cpu().numpy() @ transform_matrix
+        else:
+            vertex_normals = self.vertex_normal.detach().cpu().numpy()
+
+        # Create the trimesh mesh
+        mesh = trimesh.Trimesh(
+            vertices=vertices,
+            faces=faces,
+            face_normals=self.face_normal.detach().cpu().numpy(),
+            vertex_normals=vertex_normals,
+        )
+
+        return mesh
 
 
 class SparseFeatures2Mesh:
