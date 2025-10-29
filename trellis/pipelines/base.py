@@ -66,3 +66,7 @@ class Pipeline:
 
     def cpu(self) -> None:
         self.to(torch.device("cpu"))
+
+    def eval(self) -> None:
+        for model in self.models.values():
+            model.eval()
